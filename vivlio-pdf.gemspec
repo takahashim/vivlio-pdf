@@ -17,7 +17,10 @@ Gem::Specification.new do |spec|
   spec.license = 'AGPL-3.0-or-later'
   spec.required_ruby_version = '>= 3.1'
 
-  spec.files = Dir['lib/**/*.rb', 'vendor/viewer/**/*', 'LICENSE.txt', 'README.md']
+  # Source maps are excluded: nothing needs them at run time and they are the
+  # bulk of vendor/viewer. See tools/update_viewer.rb.
+  spec.files = Dir['lib/**/*.rb', 'vendor/viewer/**/*', 'LICENSE.txt', 'README.md'].
+               reject { |path| path.end_with?('.map') }
   spec.require_paths = ['lib']
 
   spec.add_dependency 'ferrum', '~> 0.17'

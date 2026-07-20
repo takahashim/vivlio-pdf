@@ -8,6 +8,11 @@
 #
 # The vendored package.json is the only record of which release this is, so
 # there is nothing else to keep in step afterwards.
+#
+# Source maps are dropped: they are four times the size of everything else put
+# together, they ship in the built gem, and nothing needs them at run time.
+# To read the viewer's TypeScript while debugging, fetch the map by hand into
+# vendor/viewer/js/ -- .gitignore keeps it out of the way.
 
 require 'fileutils'
 require 'open-uri'
@@ -30,6 +35,7 @@ Dir.mktmpdir do |tmp|
   FileUtils.mkdir_p(dest)
   FileUtils.cp_r(Dir[File.join(tmp, 'package/lib/*')], dest)
   FileUtils.cp(File.join(tmp, 'package/package.json'), dest)
+  FileUtils.rm_f(Dir[File.join(dest, '**', '*.map')])
   File.binwrite(File.join(dest, 'LICENSE'), URI.open(license_url).read) # rubocop:disable Security/Open
 end
 
