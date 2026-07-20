@@ -25,12 +25,18 @@ gem 'vivlio-pdf', github: 'takahashim/vivlio-pdf'
 require 'vivlio/pdf'
 
 # 単発変換
-result = Vivlio::PDF.print(
-  source: 'book/OEBPS/package.opf', # HTML / 展開済みEPUBのOPF / webpub manifest
-  output: 'book.pdf',
-  outline: :toc,                    # :toc(既定) / :headings / :none
-  metadata: { title: 'Vivliostyleで技術書をかこう！', author: 'takahashim' }
-)
+begin
+  result = Vivlio::PDF.print(
+    source: 'book/OEBPS/package.opf', # HTML / 展開済みEPUBのOPF / webpub manifest
+    output: 'book.pdf',
+    outline: :toc,                    # :toc(既定) / :headings / :none
+    metadata: { title: 'Vivliostyleで技術書をかこう！', author: 'takahashim' }
+  )
+rescue Vivlio::PDF::Error => e
+  # 変換の失敗はすべてこの派生（TimeoutError / RenderError など）で届きます。
+  # ブラウザ駆動の内部例外(Ferrum)がそのまま漏れてくることはありません。
+  abort e.message
+end
 
 result.pages      #=> 120
 result.bookmarks  #=> 79（PDF に実際に入ったしおりの数）

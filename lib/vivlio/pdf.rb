@@ -22,11 +22,15 @@ module Vivlio
     # How we drive Chrome is an implementation detail, so Ferrum's exceptions
     # are translated at every point they can escape: callers only ever have to
     # rescue Vivlio::PDF::Error.
+    #
+    # SystemCallError too: spawning the browser raises Errno::ENOENT when
+    # browser_path points at nothing, and inside these blocks an OS-level
+    # failure is a browser failure.
     def self.translate_browser_errors
       yield
     rescue Ferrum::TimeoutError => e
       raise TimeoutError, e.message
-    rescue Ferrum::Error => e
+    rescue Ferrum::Error, SystemCallError => e
       raise BrowserError, e.message
     end
 

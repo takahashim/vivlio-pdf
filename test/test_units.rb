@@ -167,6 +167,17 @@ class TestPrintOptions < Minitest::Test
     assert_raises(ArgumentError) { Vivlio::PDF.print(output: 'x.pdf') }
   end
 
+  # README promises that every conversion failure arrives as a
+  # Vivlio::PDF::Error. Spawning a browser that does not exist raises
+  # Errno::ENOENT, not a Ferrum error, so it needs translating too.
+  def test_missing_browser_becomes_a_browser_error
+    error = assert_raises(Vivlio::PDF::BrowserError) do
+      Vivlio::PDF.print(source: FIXTURE, output: 'x.pdf',
+                        browser_path: '/nonexistent/chrome')
+    end
+    assert_match(/nonexistent/, error.message)
+  end
+
   # The declared option lists are what Vivlio::PDF.print validates against, so
   # a keyword added to either signature has to be added to its list too.
   def test_option_lists_match_the_signatures
