@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>vivlio-pdf smoke test</title>
+<style>
+@page {
+  size: 182mm 257mm;
+  margin: 30mm 26mm 38.1mm;
+  @bottom-center { content: counter(page); }
+}
+@page :left  { @top-left  { content: string(chapter); } }
+@page :right { @top-right { content: string(chapter); } }
+h1 { string-set: chapter content(); break-before: page; }
+nav li { list-style: none; }
+</style>
+</head>
+<body>
+<nav id="toc" role="doc-toc">
+  <h1>目次</h1>
+  <ol>
+    <li><a href="#chap1">第1章</a></li>
+    <li><a href="#chap2">第2章</a></li>
+  </ol>
+</nav>
+<section>
+  <h1 id="chap1">第1章 これはテストです</h1>
+  <p>本文の段落です。柱とノンブルの確認をします。</p>
+</section>
+<section>
+  <h1 id="chap2">第2章 二つ目の章</h1>
+  <p>二章目の本文です。</p>
+</section>
+</body>
+</html>
