@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
 
   # Source maps are excluded: nothing needs them at run time and they are the
   # bulk of vendor/viewer. See tools/update_viewer.rb.
-  spec.files = Dir['lib/**/*.rb', 'vendor/viewer/**/*', 'LICENSE.txt', 'README.md'].
+  spec.files = Dir['lib/**/*.rb', 'vendor/viewer/**/*', 'LICENSE.txt', 'README.md', 'README.ja.md'].
                reject { |path| path.end_with?('.map') }
   spec.require_paths = ['lib']
 

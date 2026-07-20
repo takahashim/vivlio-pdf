@@ -1,124 +1,125 @@
 # vivlio-pdf
 
-CSS 組版による PDF 生成を Ruby から行う gem です。
+CSS typesetting from Ruby: a gem that renders print-quality PDFs.
 
-ローカルの Chrome/Chromium を CDP / [ferrum](https://github.com/rubycdp/ferrum) 経由で起動し、同梱の [Vivliostyle Viewer](https://github.com/vivliostyle/vivliostyle.js) を使って CSS Paged Media(柱・ノンブル・目次リーダー・PDF しおり) に対応した印刷用PDFを出力します。
+[日本語版 README はこちら](./README.ja.md)
 
-Node.js には依存せず、Ruby 単体で動作します。
+It drives a local Chrome/Chromium over CDP via [ferrum](https://github.com/rubycdp/ferrum), loading documents into the bundled [Vivliostyle Viewer](https://github.com/vivliostyle/vivliostyle.js) to produce PDFs with full CSS Paged Media support — running heads, page numbers, TOC leaders, and PDF bookmarks.
 
-## 必要環境
+No Node.js required; it runs on Ruby alone.
+
+## Requirements
 
 - Ruby >= 3.1
-- Chrome / Chromium (ローカルにインストール済みであること)
-- macOS / Linux (Windows はパスの `file://` URL 化が未対応)
+- Chrome / Chromium (installed locally)
+- macOS / Linux (Windows is not supported: paths are not converted to `file://` URLs correctly)
 
-## インストール
+## Installation
 
 ```ruby
 # Gemfile
 gem 'vivlio-pdf', github: 'takahashim/vivlio-pdf'
 ```
 
-## 使い方
+## Usage
 
 ```ruby
 require 'vivlio/pdf'
 
-# 単発変換
+# One-shot conversion
 begin
   result = Vivlio::PDF.print(
-    source: 'book/OEBPS/package.opf', # HTML / 展開済みEPUBのOPF / webpub manifest
+    source: 'book/OEBPS/package.opf', # HTML / OPF of an unzipped EPUB / webpub manifest
     output: 'book.pdf',
-    outline: :toc,                    # :toc(既定) / :headings / :none
-    metadata: { title: 'Vivliostyleで技術書をかこう！', author: 'takahashim' }
+    outline: :toc,                    # :toc (default) / :headings / :none
+    metadata: { title: 'Writing Books with Vivliostyle', author: 'takahashim' }
   )
 rescue Vivlio::PDF::Error => e
-  # 変換の失敗はすべてこの派生（TimeoutError / RenderError など）で届きます。
-  # ブラウザ駆動の内部例外(Ferrum)がそのまま漏れてくることはありません。
+  # Every conversion failure arrives as a subclass of this
+  # (TimeoutError, RenderError, and so on). The browser-driving
+  # internals (Ferrum) never leak their own exceptions.
   abort e.message
 end
 
 result.pages      #=> 120
-result.bookmarks  #=> 79（PDF に実際に入ったしおりの数）
-result.warnings   #=> []（目次が読めなかった等、変換は続行した問題）
-result.to_s       #=> "book.pdf"（文字列としても振る舞う）
+result.bookmarks  #=> 79 (bookmarks actually present in the PDF)
+result.warnings   #=> [] (problems the conversion survived, e.g. an unreadable TOC)
+result.to_s       #=> "book.pdf" (also acts as a string)
 
-# 複数変換(ブラウザを使い回す)
+# Several conversions, reusing one browser
 Vivlio::PDF::Printer.open do |printer|
   printer.print(source: 'a.html', output: 'a.pdf', style: 'print.css')
   printer.print(source: 'b.html', output: 'b.pdf')
 end
 ```
 
-#### 主なオプション
+#### Main options
 
-- `browser_path:` Chrome 実行ファイルのパス(省略時は自動検出)
-- `viewer:` 同梱以外の Vivliostyle Viewer(パスまたは `Viewer` オブジェクト)
-- `timeout:` レンダリング待ちの上限秒(既定 300)
-- `style:` 追加スタイルシートのパス(複数可)
-- `book_mode:` 目次/spine をたどって全体を読む(既定: OPF/manifest なら true)
+- `browser_path:` path to the Chrome executable (auto-detected when omitted)
+- `viewer:` a Vivliostyle Viewer other than the bundled one (a path or a `Viewer` object)
+- `timeout:` upper limit in seconds to wait for rendering (default 300)
+- `style:` additional stylesheet path(s)
+- `book_mode:` follow the TOC/spine and read the whole publication (default: true for OPF/manifest)
 
-## 構成
+## Architecture
 
-- `Printer`: ブラウザを保有し、変換全体を差配する
-- `Viewer`: Viewer の所在と、文書を開く URL の組み立て
-- `Source`: 変換対象の文書 (HTML / OPF / manifest)
-- `Session`: 開かれた1文書用のセッション。描画完了待ち・目次取得・PDF化などに使用
-- `Outline::{Toc,Headings,None}`: しおりの生成
-- `TocItem`: 目次の木構造 (値オブジェクト)
-- `Metadata`: 文書情報辞書に書く値 (値オブジェクト)
-- `Document`: 出力 PDF。hexapdf でしおり・メタデータを書き込む
-- `Result`: 変換結果(パス・ページ数・しおり数)
+- `Printer`: owns the browser and orchestrates conversions
+- `Viewer`: locates the viewer and builds the URL that opens a document
+- `Source`: the document to convert (HTML / OPF / manifest)
+- `Session`: one open document; waits for rendering, reads the TOC, prints to PDF
+- `Outline::{Toc,Headings,None}`: bookmark generation strategies
+- `TocItem`: the TOC tree (value object)
+- `Metadata`: values written into the document information dictionary (value object)
+- `Document`: the output PDF; writes bookmarks and metadata via hexapdf
+- `Result`: the outcome of a conversion (path, page count, bookmark count)
 
-## PDF しおりの仕組み
+## How PDF bookmarks work
 
-`outline: :toc` では vivliostyle-cli と同じ方式を使います。
+With `outline: :toc`, the same approach as vivliostyle-cli is used.
 
-印刷前に目次リンクを DOM に表示して Chromium に名前付きデスティネーションを埋め込ませ、`coreViewer.getTOC()` の木構造から [hexapdf](https://hexapdf.gettalong.org/) で /Outlines を構築します。
-ページ番号の計算は行いません。
+Before printing, the TOC links are made visible in the DOM so that Chromium embeds named destinations for them; the tree from `coreViewer.getTOC()` is then written as `/Outlines` with [hexapdf](https://hexapdf.gettalong.org/).
+No page numbers are computed.
 
-## ライセンス
+## License
 
-AGPL-3.0-or-later。詳細は [LICENSE](./LICENSE.txt) を参照してください。
+AGPL-3.0-or-later. See [LICENSE](./LICENSE.txt) for details.
 
-- `vendor/viewer/` には [@vivliostyle/viewer](https://www.npmjs.com/package/@vivliostyle/viewer)(AGPL-3.0)を同梱しています。
-  対応するソースコードは[vivliostyle/vivliostyle.js](https://github.com/vivliostyle/vivliostyle.js)の該当バージョンタグから入手できます。
-- 依存gemのライセンスは ferrum は MIT、hexapdf は AGPL-3.0 です。
+- `vendor/viewer/` bundles [@vivliostyle/viewer](https://www.npmjs.com/package/@vivliostyle/viewer) (AGPL-3.0).
+  The corresponding source code is available from the matching version tag of [vivliostyle/vivliostyle.js](https://github.com/vivliostyle/vivliostyle.js).
+- Dependency licenses: ferrum is MIT, hexapdf is AGPL-3.0.
 
-※ 本 gem で生成した PDF は AGPL の対象外です(ソフトウェア自体の配布・ネットワーク提供時のみ義務が発生します)
+Note: PDFs produced with this gem are not subject to the AGPL. The obligations apply only to distributing the software itself or offering it over a network.
 
-## 同梱している Viewer のバージョン
+## The bundled viewer version
 
-同梱中のバージョンは `vendor/viewer/package.json` に記録されており、実行時は
-`Vivlio::PDF::Viewer.default.version` で参照できます。
+The bundled version is recorded in `vendor/viewer/package.json` and can be read at run time via `Vivlio::PDF::Viewer.default.version`.
 
-Viewer は依存ではなく同梱物なので、**gem のバージョンを固定すれば紙面が固定されます**。
-本のリポジトリで `Gemfile.lock` を維持していれば、あとから組み直しても同じ PDF が得られます。
-入稿前に `bundle update` しないでください。
+The viewer is vendored, not a dependency, so **pinning the gem version pins your page layout**.
+As long as your book's repository keeps its `Gemfile.lock`, rebuilding later produces the same PDF.
+Do not `bundle update` right before going to press.
 
-Viewer が変わるとページ送りが変わることがあります。テストが通っても変わります。
-そのため本 gem では、**Viewer の更新を含むリリースは patch では出しません**(最低でも minor)。
+A viewer change can move lines between pages — even when every test passes.
+For that reason, **a release that updates the viewer is never a patch release** (minor at minimum).
 
-別のバージョンを使いたい場合は、gem を待たずに差し替えられます。
+To use a different viewer version without waiting for a gem release:
 
 ```ruby
 Vivlio::PDF.print(source: 'book.opf', output: 'book.pdf',
                   viewer: '/path/to/vivliostyle-viewer')
 ```
 
-## Viewer の更新方法
+## Updating the viewer
 
 ```console
 $ rake "viewer:update[2.45.0]"
 ```
 
-バージョンは同梱の `package.json` から読むので、他に更新すべき箇所はありません。
-ソースマップは同梱しません(実行時に不要で、他のファイルの合計より大きいため)。
-Viewer の TypeScript を読みたいときは、npm の tarball から
-`vendor/viewer/js/` に手で置いてください。`.gitignore` で除外してあります。
+The version is read from the bundled `package.json`, so nothing else needs to be kept in step.
+Source maps are not vendored (they are unused at run time and larger than everything else combined).
+To read the viewer's TypeScript, place the map into `vendor/viewer/js/` by hand from the npm tarball; `.gitignore` keeps it out of the way.
 
-新しいリリースは GitHub Actions が週次で検出し、更新用のプルリクエストを起票します
-(`.github/workflows/update-viewer.yml`)。自動マージはしません。
-`test/test_viewer_behavior.rb` は Viewer の挙動を固定したテストで、
-ここが落ちている場合は不具合ではなく **Viewer 側の挙動が変わった**ことを意味します。
-回避策を外せるようになった可能性があるので、内容を確認してください。
+A GitHub Actions workflow checks for new releases weekly and opens an update pull request
+(`.github/workflows/update-viewer.yml`). It never merges automatically.
+`test/test_viewer_behavior.rb` pins the viewer's behaviour: a failure there is not a bug —
+it means **the viewer's behaviour changed**, possibly in a way that lets a workaround be
+removed, so read what it found.
