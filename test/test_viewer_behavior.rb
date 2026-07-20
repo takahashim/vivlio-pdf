@@ -110,9 +110,18 @@ class TestViewerBehavior < Minitest::Test
 
   # @font-face size-adjust is how a stylesheet corrects the apparent size of
   # Latin text against Japanese of the same em.
+  #
+  # The src list has to name a font that is actually installed, or local()
+  # falls through to the default face and size-adjust never applies -- both
+  # renders then come out identical and the assertion reads as a viewer
+  # regression when nothing changed. Times New Roman covers macOS; Liberation
+  # Serif covers the GitHub runners, where it is installed as a dependency of
+  # the google-chrome package; DejaVu Serif covers most other Linuxes.
   def test_font_face_size_adjust_changes_layout
     face = lambda { |name, adjust|
-      %(@font-face { font-family: "#{name}"; src: local("Times New Roman"); size-adjust: #{adjust}; })
+      %(@font-face { font-family: "#{name}"; ) +
+        %(src: local("Times New Roman"), local("Liberation Serif"), local("DejaVu Serif"); ) +
+        %(size-adjust: #{adjust}; })
     }
     line = 'Hamburgefonstiv Hamburgefonstiv Hamburgefonstiv Hamburgefonstiv'
     text = ("<p>#{line}</p>" * 20)
