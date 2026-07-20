@@ -259,6 +259,34 @@ class TestStagedFile < Minitest::Test
     refute_path_exists @destination
     assert_empty Dir.children(@dir)
   end
+
+  def test_cleans_up_a_stale_staged_file_from_a_killed_run
+    File.write("#{@destination}.part", 'stale')
+
+    Vivlio::PDF::StagedFile.write(@destination) { |staged| File.write(staged, 'done') }
+
+    assert_equal 'done', File.read(@destination)
+  end
+
+  # The staged path is claimed (created empty, exclusively) before the block
+  # runs, so nothing can slip a symlink in under a predictable name.
+  def test_claims_the_staged_path_before_yielding
+    Vivlio::PDF::StagedFile.write(@destination) do |staged|
+      assert_path_exists staged
+      File.write(staged, 'x')
+    end
+  end
+
+  def test_a_planted_symlink_cannot_redirect_the_write
+    victim = File.join(@dir, 'victim.txt')
+    File.write(victim, 'untouched')
+    File.symlink(victim, "#{@destination}.part")
+
+    Vivlio::PDF::StagedFile.write(@destination) { |staged| File.binwrite(staged, 'pdf bytes') }
+
+    assert_equal 'untouched', File.read(victim), 'the write must not go through the symlink'
+    assert_equal 'pdf bytes', File.read(@destination)
+  end
 end
 
 class TestSession < Minitest::Test
