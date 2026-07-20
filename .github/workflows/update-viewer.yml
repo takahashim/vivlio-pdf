@@ -1,0 +1,95 @@
+name: update-viewer
+
+# Notices new @vivliostyle/viewer releases and opens a pull request with the
+# vendored copy updated.
+#
+# Deliberately does not merge. A viewer update can move a line between pages
+# without failing any test, and a book that is being proofread should not have
+# its pagination change underneath it. What this workflow is for is knowing
+# that a release exists, and -- through test/test_viewer_behavior.rb -- what
+# changed in the behaviour stylesheets depend on.
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'   # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: Compare the vendored viewer with the latest release
+        id: check
+        run: |
+          current=$(ruby -rjson -e 'puts JSON.parse(File.read("vendor/viewer/package.json"))["version"]')
+          latest=$(curl -fsSL https://registry.npmjs.org/@vivliostyle/viewer \
+                   | ruby -rjson -e 'puts JSON.parse($stdin.read)["dist-tags"]["latest"]')
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$current" = "$latest" ]; then
+            echo "update=no" >> "$GITHUB_OUTPUT"
+            echo "vendored $current is the latest release"
+          else
+            echo "update=yes" >> "$GITHUB_OUTPUT"
+            echo "vendored $current, latest is $latest"
+          fi
+
+      - name: Update vendor/viewer
+        if: steps.check.outputs.update == 'yes'
+        run: bundle exec rake "viewer:update[${{ steps.check.outputs.latest }}]"
+
+      # Runs on the updated tree. A failure in test_viewer_behavior.rb is not a
+      # reason to abandon the update -- it is the finding. Let it through so the
+      # pull request records it.
+      - name: Run tests
+        if: steps.check.outputs.update == 'yes'
+        id: tests
+        continue-on-error: true
+        run: bundle exec rake test
+
+      - name: Open a pull request
+        if: steps.check.outputs.update == 'yes'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: viewer-update/${{ steps.check.outputs.latest }}
+          title: "Vivliostyle Viewer を ${{ steps.check.outputs.latest }} に更新"
+          commit-message: |
+            Vivliostyle Viewer を ${{ steps.check.outputs.current }} から ${{ steps.check.outputs.latest }} に更新
+
+            vendor/viewer を @vivliostyle/viewer ${{ steps.check.outputs.latest }} の
+            npm tarball から入れ替えた。同梱バージョンは vendor/viewer/package.json
+            が唯一の記録なので、他に更新すべき箇所はない。
+          body: |
+            @vivliostyle/viewer に新しいリリースが出たので、`vendor/viewer` を
+            `${{ steps.check.outputs.current }}` から `${{ steps.check.outputs.latest }}` に更新した。
+
+            **テスト結果: `${{ steps.tests.outcome }}`**
+
+            `test/test_viewer_behavior.rb` はビューアの挙動を固定したテストで、
+            ここが落ちている場合は不具合ではなく**ビューア側の挙動が変わった**
+            ことを意味する。回避策を外せるようになった可能性があるので、
+            該当箇所とスタイルシート側の対応を確認すること。
+
+            マージ前に確認したいこと:
+
+            - 実際の本を組み直してページ送りが変わっていないか
+              （テストは通ってもページが動くことがある）
+            - 回避策を外せるようになっていないか
+              （`min-width: 1px` / `line-height` の長さ指定 / `@layer` の不使用）
+            - 校正中・入稿前の本がある場合は、そちらが片付くまで待つ
+
+            変更履歴: https://github.com/vivliostyle/vivliostyle.js/releases
+          labels: dependencies
+          delete-branch: true
