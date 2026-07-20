@@ -94,12 +94,12 @@ Note: PDFs produced with this gem are not subject to the AGPL. The obligations a
 
 The bundled version is recorded in `vendor/viewer/package.json` and can be read at run time via `Vivlio::PDF::Viewer.default.version`.
 
-The viewer is vendored, not a dependency, so **pinning the gem version pins your page layout**.
+The viewer is vendored, not a dependency, so pinning the gem version pins your page layout.
 As long as your book's repository keeps its `Gemfile.lock`, rebuilding later produces the same PDF.
 Do not `bundle update` right before going to press.
 
 A viewer change can move lines between pages — even when every test passes.
-For that reason, **a release that updates the viewer is never a patch release** (minor at minimum).
+For that reason, a release that updates the viewer is never a patch release (minor at minimum).
 
 To use a different viewer version without waiting for a gem release:
 
@@ -121,5 +121,5 @@ To read the viewer's TypeScript, place the map into `vendor/viewer/js/` by hand 
 A GitHub Actions workflow checks for new releases weekly and opens an update pull request
 (`.github/workflows/update-viewer.yml`). It never merges automatically.
 `test/test_viewer_behavior.rb` pins the viewer's behaviour: a failure there is not a bug —
-it means **the viewer's behaviour changed**, possibly in a way that lets a workaround be
+it means the viewer's behaviour changed, possibly in a way that lets a workaround be
 removed, so read what it found.
