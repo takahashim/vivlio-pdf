@@ -57,6 +57,7 @@ end
 - `browser_path:` Chrome 実行ファイルのパス(省略時は自動検出)
 - `viewer:` 同梱以外の Vivliostyle Viewer(パスまたは `Viewer` オブジェクト)
 - `timeout:` レンダリング待ちの上限秒(既定 300)
+- `process_timeout:` Chrome 起動待ちの上限秒(既定 30)
 - `style:` 追加スタイルシートのパス(複数可)
 - `book_mode:` 目次/spine をたどって全体を読む(既定: OPF/manifest なら true)
 
