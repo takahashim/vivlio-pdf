@@ -149,6 +149,19 @@ class TestViewerBehavior < Minitest::Test
     assert_in_delta 100.0, widest, 1.0, 'the bare page should keep margin: 0'
   end
 
+  # @layer is honoured: the rules inside it reach layout, so a stylesheet may
+  # use it and rely on layer order for overrides. Earlier viewers dropped the
+  # contents of @layer entirely; that workaround is no longer needed.
+  def test_at_layer_is_honoured
+    body = '<div>a</div><div class="b">b</div>'
+
+    plain = render('div.b { break-before: page; }', body)
+    layered = render('@layer { div.b { break-before: page; } }', body)
+
+    assert_equal 2, plain.pages
+    assert_equal 2, layered.pages, '@layer rules reach layout'
+  end
+
   # --- not supported: workarounds depend on these staying broken -----------
 
   # A stylesheet cannot derive line-height as a ratio of two lengths: the
@@ -165,19 +178,6 @@ class TestViewerBehavior < Minitest::Test
     assert_operator as_length.pages, :>, 1, 'a length leading paginates normally'
     assert_equal 1, as_ratio.pages,
                  'if this now paginates, the ratio form works: stylesheets may use it'
-  end
-
-  # @layer is not merely ignored -- the rules inside it are dropped. Stylesheets
-  # must not use it, and cannot rely on layer order for overrides.
-  def test_at_layer_discards_its_contents
-    body = '<div>a</div><div class="b">b</div>'
-
-    plain = render('div.b { break-before: page; }', body)
-    layered = render('@layer { div.b { break-before: page; } }', body)
-
-    assert_equal 2, plain.pages
-    assert_equal 1, layered.pages,
-                 'if this is now 2, @layer is honoured and can be used'
   end
 
   # image-resolution below 96dpi (which includes every image with no embedded
