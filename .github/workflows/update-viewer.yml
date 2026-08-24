@@ -63,6 +63,7 @@ jobs:
         if: steps.check.outputs.update == 'yes'
         uses: peter-evans/create-pull-request@v6
         with:
+          add-paths: vendor/viewer
           branch: viewer-update/${{ steps.check.outputs.latest }}
           title: "Vivliostyle Viewer を ${{ steps.check.outputs.latest }} に更新"
           commit-message: |

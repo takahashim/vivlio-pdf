@@ -4,5 +4,8 @@
 /tmp/
 *.gem
 
+# bundler-cache installs gems here; never commit them.
+/vendor/bundle/
+
 # Fetch by hand when you need to read the viewer's source while debugging.
 vendor/viewer/**/*.map
