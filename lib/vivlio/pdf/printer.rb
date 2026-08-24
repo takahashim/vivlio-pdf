@@ -16,6 +16,12 @@ module Vivlio
     class Printer
       DEFAULT_TIMEOUT = 300
 
+      # How long to wait for Chrome to boot and report its websocket URL. This
+      # is Ferrum's :process_timeout, separate from :timeout above -- the latter
+      # bounds rendering, this one bounds startup. Ferrum defaults it to 10s,
+      # which a loaded CI runner occasionally overruns; 30s absorbs that.
+      DEFAULT_PROCESS_TIMEOUT = 30
+
       # Chromium refuses XHR against file:// without this, and the viewer
       # fetches the source document that way. Build-tool usage only.
       BROWSER_OPTIONS = { 'allow-file-access-from-files' => nil }.freeze
@@ -25,7 +31,7 @@ module Vivlio
       # than derived from the signatures, because these are public API and a
       # parameter rename should not quietly become an API change. A unit test
       # fails if either signature drifts away from its list.
-      SETUP_OPTIONS = %i[viewer browser_path timeout].freeze
+      SETUP_OPTIONS = %i[viewer browser_path timeout process_timeout].freeze
       PRINT_OPTIONS = %i[outline metadata book_mode style].freeze
 
       # What one pass through the viewer produced, besides the PDF bytes.
@@ -44,9 +50,11 @@ module Vivlio
         end
       end
 
-      def initialize(viewer: nil, browser_path: nil, timeout: DEFAULT_TIMEOUT)
+      def initialize(viewer: nil, browser_path: nil, timeout: DEFAULT_TIMEOUT,
+                     process_timeout: DEFAULT_PROCESS_TIMEOUT)
         @viewer = Viewer.coerce(viewer)
         @timeout = timeout
+        @process_timeout = process_timeout
         @browser_path = browser_path
       end
 
@@ -71,6 +79,7 @@ module Vivlio
           Ferrum::Browser.new(
             headless: true,
             timeout: @timeout,
+            process_timeout: @process_timeout,
             browser_path: @browser_path,
             browser_options: BROWSER_OPTIONS
           )

@@ -58,6 +58,7 @@ end
 - `browser_path:` path to the Chrome executable (auto-detected when omitted)
 - `viewer:` a Vivliostyle Viewer other than the bundled one (a path or a `Viewer` object)
 - `timeout:` upper limit in seconds to wait for rendering (default 300)
+- `process_timeout:` upper limit in seconds to wait for Chrome to start (default 30)
 - `style:` additional stylesheet path(s)
 - `book_mode:` follow the TOC/spine and read the whole publication (default: true for OPF/manifest)
 
