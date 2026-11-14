@@ -17,7 +17,7 @@ require 'vivlio/pdf'
 # viewer improved and the workaround in the dependent stylesheet can go. Read a
 # red build here as "revisit the workaround", never as "something broke".
 #
-# Each expectation was measured against viewer 2.44.1.
+# Each expectation was last checked against viewer 2.46.0.
 class TestViewerBehavior < Minitest::Test
   def setup
     @dir = Dir.mktmpdir('viewer-behavior')
@@ -162,13 +162,12 @@ class TestViewerBehavior < Minitest::Test
     assert_equal 2, layered.pages, '@layer rules reach layout'
   end
 
-  # --- not supported: workarounds depend on these staying broken -----------
-
-  # A stylesheet cannot derive line-height as a ratio of two lengths: the
-  # declaration parses (CSS.supports says yes) but does not reach layout, and
-  # lines collapse so the content never paginates. Leading is passed as a
-  # length instead.
-  def test_calc_dividing_lengths_does_not_reach_layout
+  # line-height may be derived as a ratio of two lengths: calc() dividing one
+  # length by another reaches layout and gives the same leading as the length
+  # itself. Viewers up to 2.45.0 parsed the declaration but dropped it, so
+  # lines collapsed and the content never paginated; passing leading as a
+  # length is no longer required.
+  def test_calc_dividing_lengths_reaches_layout
     body = (1..120).map { |i| "<p>#{i}</p>" }.join
     css = ':root { --lh: 21.65Q; --fs: 13Q; } html { font-size: var(--fs); } p { margin: 0; '
 
@@ -176,9 +175,11 @@ class TestViewerBehavior < Minitest::Test
     as_ratio = render("#{css}line-height: calc(var(--lh) / var(--fs)); }", body)
 
     assert_operator as_length.pages, :>, 1, 'a length leading paginates normally'
-    assert_equal 1, as_ratio.pages,
-                 'if this now paginates, the ratio form works: stylesheets may use it'
+    assert_equal as_length.pages, as_ratio.pages,
+                 'the ratio form should lay out the same as the length form'
   end
+
+  # --- not supported: workarounds depend on these staying broken -----------
 
   # image-resolution below 96dpi (which includes every image with no embedded
   # resolution, read as 72dpi) enlarges by setting min-width, and min-width
