@@ -10,7 +10,7 @@ No Node.js required; it runs on Ruby alone.
 
 ## Requirements
 
-- Ruby >= 3.1
+- Ruby >= 3.2
 - Chrome / Chromium (installed locally)
 - macOS / Linux (Windows is not supported: paths are not converted to `file://` URLs correctly)
 

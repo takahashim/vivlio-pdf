@@ -10,7 +10,7 @@ Node.js には依存せず、Ruby 単体で動作します。
 
 ## 必要環境
 
-- Ruby >= 3.1
+- Ruby >= 3.2
 - Chrome / Chromium (ローカルにインストール済みであること)
 - macOS / Linux (Windows はパスの `file://` URL 化が未対応)
 
