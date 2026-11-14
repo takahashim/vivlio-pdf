@@ -17,7 +17,7 @@ require 'vivlio/pdf'
 # viewer improved and the workaround in the dependent stylesheet can go. Read a
 # red build here as "revisit the workaround", never as "something broke".
 #
-# Each expectation was measured against viewer 2.44.1.
+# Each expectation was last checked against viewer 2.46.0.
 class TestViewerBehavior < Minitest::Test
   def setup
     @dir = Dir.mktmpdir('viewer-behavior')

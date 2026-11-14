@@ -88,7 +88,7 @@ jobs:
             - 実際の本を組み直してページ送りが変わっていないか
               （テストは通ってもページが動くことがある）
             - 回避策を外せるようになっていないか
-              （`min-width: 1px` / `line-height` の長さ指定 / `@layer` の不使用）
+              （`min-width: 1px`）
             - 校正中・入稿前の本がある場合は、そちらが片付くまで待つ
 
             変更履歴: https://github.com/vivliostyle/vivliostyle.js/releases
