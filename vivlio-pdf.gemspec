@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   DESC
   spec.homepage = 'https://github.com/takahashim/vivlio-pdf'
   spec.license = 'AGPL-3.0-or-later'
-  spec.required_ruby_version = '>= 3.1'
+  spec.required_ruby_version = '>= 3.2'
 
   # Source maps are excluded: nothing needs them at run time and they are the
   # bulk of vendor/viewer. See tools/update_viewer.rb.
@@ -23,6 +23,6 @@ Gem::Specification.new do |spec|
                reject { |path| path.end_with?('.map') }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'ferrum', '~> 0.17'
+  spec.add_dependency 'ferrum', '~> 0.20'
   spec.add_dependency 'hexapdf', '~> 1.0'
 end

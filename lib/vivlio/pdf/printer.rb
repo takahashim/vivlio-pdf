@@ -22,6 +22,13 @@ module Vivlio
       # which a loaded CI runner occasionally overruns; 30s absorbs that.
       DEFAULT_PROCESS_TIMEOUT = 30
 
+      # How long to wait for Chrome to answer the bookkeeping calls around a
+      # tab, such as Target.createTarget. Ferrum bounds these with its own
+      # :protocol_timeout rather than :timeout, and defaults it to 5s, which a
+      # loaded CI runner occasionally overruns right after Chrome starts. Not
+      # an option: it guards Ferrum internals, not anything a caller asked for.
+      PROTOCOL_TIMEOUT = 30
+
       # Chromium refuses XHR against file:// without this, and the viewer
       # fetches the source document that way. Build-tool usage only.
       BROWSER_OPTIONS = { 'allow-file-access-from-files' => nil }.freeze
@@ -80,6 +87,7 @@ module Vivlio
             headless: true,
             timeout: @timeout,
             process_timeout: @process_timeout,
+            protocol_timeout: PROTOCOL_TIMEOUT,
             browser_path: @browser_path,
             browser_options: BROWSER_OPTIONS
           )
