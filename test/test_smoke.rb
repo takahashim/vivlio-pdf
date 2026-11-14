@@ -104,4 +104,15 @@ class TestSmoke < Minitest::Test
     assert_operator File.size(first), :>, 0
     assert_operator File.size(second), :>, 0
   end
+
+  # Ferrum waits on tab bookkeeping (Target.createTarget and the like) with
+  # :protocol_timeout, not :timeout, and its 5s default failed CI right after
+  # Chrome started. Pin that the browser is launched with ours.
+  def test_browser_waits_on_protocol_calls_with_our_timeout
+    Vivlio::PDF::Printer.open(timeout: 120) do |printer|
+      options = printer.browser.options
+      assert_equal Vivlio::PDF::Printer::PROTOCOL_TIMEOUT, options.protocol_timeout
+      assert_equal 120, options.timeout
+    end
+  end
 end

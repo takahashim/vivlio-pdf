@@ -16,15 +16,18 @@ module Vivlio
       # the DOM while printing for Chromium to emit named destinations for
       # them. Same approach as vivliostyle-cli.
       READ_TOC = <<~JS
-        const done = arguments[0];
-        function listener(payload) {
-          if (payload.a !== 'toc') return;
-          window.coreViewer.removeListener('done', listener);
-          window.coreViewer.showTOC(false);
-          done(window.coreViewer.getTOC());
+        function() {
+          return new Promise(function(resolve) {
+            function listener(payload) {
+              if (payload.a !== 'toc') return;
+              window.coreViewer.removeListener('done', listener);
+              window.coreViewer.showTOC(false);
+              resolve(window.coreViewer.getTOC());
+            }
+            window.coreViewer.addListener('done', listener);
+            window.coreViewer.showTOC(true);
+          });
         }
-        window.coreViewer.addListener('done', listener);
-        window.coreViewer.showTOC(true);
       JS
 
       POLL_INTERVAL = 0.2
@@ -91,7 +94,7 @@ module Vivlio
       private
 
       def read_toc
-        PDF.translate_browser_errors { @page.evaluate_async(READ_TOC, @timeout) }
+        PDF.translate_browser_errors { @page.evaluate(READ_TOC, timeout: @timeout) }
       end
 
       def wait_until_ready

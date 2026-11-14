@@ -23,6 +23,6 @@ Gem::Specification.new do |spec|
                reject { |path| path.end_with?('.map') }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'ferrum', '~> 0.17'
+  spec.add_dependency 'ferrum', '~> 0.20'
   spec.add_dependency 'hexapdf', '~> 1.0'
 end
